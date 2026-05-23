@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>중국어 말하기 수행평가</title>
+<style>
+:root {
+  --bg: #f6faf7;
+  --surface: #ffffff;
+  --ink: #0f1f14;
+  --ink-soft: #3d5247;
+  --muted: #8fa898;
+  --line: #d8ece0;
+  --accent: #22c55e;
+  --accent-dark: #16a34a;
+  --accent-soft: #f0fdf4;
+  --warn: #d97706;
+  --danger: #dc2626;
+  --success: #16a34a;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  min-height: 100vh;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+  padding: 24px 16px;
+  color: var(--ink);
+}
+.container { width: 100%; max-width: 480px; }
+.screen { display: none; }
+.screen.active { display: block; }
+
+.card {
+  background: var(--surface);
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 24px -8px rgba(15,31,20,.10);
+  padding: 28px;
+  margin-bottom: 16px;
+}
+
+.btn-primary {
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 14px 28px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .18s, transform .15s, box-shadow .18s;
+  font-family: inherit;
+}
+.btn-primary:hover { background: var(--accent-dark); transform: translateY(-1px); box-shadow: 0 6px 16px -4px rgba(34,197,94,.35); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { background: var(--muted); cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn-secondary {
+  width: 100%;
+  background: transparent;
+  color: var(--accent-dark);
+  border: 1.5px solid var(--accent);
+  border-radius: 10px;
+  padding: 13px 28px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .18s, transform .15s;
+  font-family: inherit;
+  margin-top: 8px;
+}
+.btn-secondary:hover { background: var(--accent-soft); transform: translateY(-1px); }
+
+/* 시작 화면 */
+.app-title { font-size: 1.5rem; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+.app-sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
+.info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 0.88rem; }
+.info-row:last-child { border-bottom: none; }
+.info-label { color: var(--muted); }
+.info-val { font-weight: 600; color: var(--ink-soft); }
+
+/* API Key 입력 */
+.api-section { margin-bottom: 20px; }
+.api-label { font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.api-input-row { display: flex; gap: 8px; }
+.api-input {
+  flex: 1;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  font-family: monospace;
+  color: var(--ink);
+  background: var(--surface);
+  outline: none;
+  transition: border-color .18s;
+}
+.api-input:focus { border-color: var(--accent); }
+.api-save-btn {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  border: 1.5px solid var(--accent);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.api-saved { font-size: 0.78rem; color: var(--success); margin-top: 4px; display: none; }
+
+/* 평가 화면 */
+.progress-bar-wrap { background: var(--line); border-radius: 99px; height: 6px; margin-bottom: 20px; }
+.progress-bar { background: var(--accent); height: 6px; border-radius: 99px; transition: width .4s ease; }
+.q-counter { font-size: 0.82rem; color: var(--muted); margin-bottom: 6px; }
+.q-status { font-size: 1rem; font-weight: 600; color: var(--ink-soft); margin-bottom: 16px; min-height: 28px; }
+
+.chinese-question {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--ink);
+  text-align: center;
+  padding: 24px 0;
+  letter-spacing: 4px;
+  min-height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.timer {
+  font-family: 'DM Mono', 'Courier New', monospace;
+  font-size: 2.2rem;
+  font-weight: 700;
+  text-align: center;
+  margin: 12px 0;
+  transition: color .3s;
+}
+.timer.normal { color: var(--ink); }
+.timer.warn { color: var(--warn); }
+.timer.danger { color: var(--danger); animation: shake .35s ease-in-out infinite; }
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+.mic-indicator {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  border: 2px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  margin: 12px auto;
+  font-size: 1.5rem;
+  transition: all .3s;
+}
+.mic-indicator.recording {
+  background: var(--accent);
+  border-color: var(--accent-dark);
+  animation: pulse-ring 1.4s ease-out infinite;
+}
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(34,197,94,.45); }
+  70% { box-shadow: 0 0 0 12px rgba(34,197,94,0); }
+  100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+}
+
+.stt-text {
+  min-height: 48px;
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  margin: 8px 0;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* 채점 화면 */
+.scoring-wrap { text-align: center; padding: 20px 0; }
+.scoring-spinner {
+  width: 48px; height: 48px;
+  border: 3px solid var(--line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 결과 화면 */
+.result-score-wrap { text-align: center; margin-bottom: 20px; }
+.result-score-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: var(--accent-dark);
+  line-height: 1;
+}
+.result-score-max { font-size: 1.2rem; color: var(--muted); }
+.score-badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 10px 0; }
+.badge { font-size: 0.8rem; font-weight: 600; padding: 4px 10px; border-radius: 99px; }
+.badge-pass { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+.badge-warn { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+.badge-fail { background: #fff1f2; color: #dc2626; border: 1px solid #fecdd3; }
+
+.q-row {
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  padding: 16px;
+  margin-bottom: 10px;
+  display: flex;
+  gap: 12px;
+}
+.q-row.pass { background: #f0fdf4; border-color: #bbf7d0; }
+.q-row.warn { background: #fffbeb; border-color: #fde68a; }
+.q-row.fail { background: #fff1f2; border-color: #fecdd3; }
+.q-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 2px; }
+.q-body { flex: 1; min-width: 0; }
+.q-label { font-size: 0.78rem; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+.q-chinese { font-size: 1.1rem; font-weight: 600; color: var(--ink); letter-spacing: 2px; margin-bottom: 4px; }
+.q-sentence { font-size: 0.85rem; color: var(--ink-soft); margin-bottom: 4px; background: rgba(255,255,255,.6); border-radius: 6px; padding: 4px 8px; }
+.q-reason { font-size: 0.82rem; color: var(--muted); margin-bottom: 2px; }
+.q-note { font-size: 0.85rem; color: var(--ink-soft); line-height: 1.5; }
+
+.result-comment {
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  text-align: center;
+  margin: 16px 0;
+  line-height: 1.6;
+}
+
+.error-msg { color: var(--danger); font-size: 0.85rem; text-align: center; padding: 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- 시작 화면 -->
+<div id="screen-start" class="screen active">
+  <div class="card">
+    <div class="app-title">🇨🇳 중국어 말하기 수행평가</div>
+    <div class="app-sub">平택마이스터고등학교</div>
+    <div class="info-row"><span class="info-label">문항 구성</span><span class="info-val">10개 중 3개 랜덤</span></div>
+    <div class="info-row"><span class="info-label">답변 시간</span><span class="info-val">문항당 10초</span></div>
+    <div class="info-row"><span class="info-label">만점</span><span class="info-val">10점</span></div>
+    <div class="info-row"><span class="info-label">채점</span><span class="info-val">AI 자동 채점 (Gemini)</span></div>
+    <div class="info-row"><span class="info-label">참고</span><span class="info-val">성조 틀려도 의미 전달 시 인정</span></div>
+  </div>
+
+  <div class="card api-section">
+    <div class="api-label">🔑 Gemini API Key</div>
+    <div class="api-input-row">
+      <input type="password" class="api-input" id="api-key-input" placeholder="AIza...">
+      <button class="api-save-btn" onclick="saveApiKey()">저장</button>
+    </div>
+    <div class="api-saved" id="api-saved-msg">✓ 저장됨</div>
+  </div>
+
+  <button class="btn-primary" onclick="startTest()">평가 시작</button>
+</div>
+
+<!-- 평가 화면 -->
+<div id="screen-test" class="screen">
+  <div class="card">
+    <div class="q-counter" id="q-counter">1 / 3</div>
+    <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar" style="width:33%"></div></div>
+    <div class="q-status" id="q-status">질문을 듣고 답변하세요</div>
+    <div class="chinese-question" id="chinese-q">—</div>
+    <div class="timer normal" id="timer">30</div>
+    <div class="mic-indicator" id="mic-indicator">🎙️</div>
+    <div class="stt-text" id="stt-text">인식된 답변이 여기에 표시됩니다</div>
+    <button class="btn-primary" id="btn-next" onclick="finishAnswer()" style="display:none; margin-top:8px;">다음 질문으로 →</button>
+  </div>
+</div>
+
+<!-- 채점 화면 -->
+<div id="screen-scoring" class="screen">
+  <div class="card">
+    <div class="scoring-wrap">
+      <div class="scoring-spinner"></div>
+      <div style="font-size:1rem; color:var(--muted);">AI가 채점 중입니다…</div>
+      <div style="font-size:0.85rem; color:var(--muted); margin-top:6px;">잠시만 기다려주세요</div>
+    </div>
+  </div>
+</div>
+
+<!-- 결과 화면 -->
+<div id="screen-result" class="screen">
+  <div class="card">
+    <div class="result-score-wrap">
+      <div class="result-score-num" id="result-score">--</div>
+      <div class="result-score-max">/ 10점</div>
+      <div class="score-badges" id="score-badges"></div>
+    </div>
+    <div id="q-results"></div>
+    <div class="result-comment" id="result-comment">수고했어요!</div>
+    <div class="error-msg" id="error-msg" style="display:none"></div>
+  </div>
+  <button class="btn-primary" onclick="restartTest()">다음 학생 평가</button>
+  <button class="btn-secondary" onclick="goHome()">처음으로</button>
+</div>
+
+</div>
+
+<script>
+const GEMINI_MODEL = 'gemini-2.5-flash';
+const STORAGE_KEY = 'chinese_speaking_test_apikey_v1';
+const ANSWER_TIME = 10;
+
+const QUESTIONS = [
+  { zh: '你好吗？', hint: '안녕하세요? (안부)' },
+  { zh: '你叫什么名字？', hint: '이름이 뭐예요?' },
+  { zh: '你是哪国人？', hint: '어느 나라 사람이에요?' },
+  { zh: '你几岁？', hint: '몇 살이에요?' },
+  { zh: '你喜欢什么？', hint: '무엇을 좋아해요?' },
+  { zh: '你家在哪里？', hint: '집이 어디예요?' },
+  { zh: '你有兄弟姐妹吗？', hint: '형제자매가 있어요?' },
+  { zh: '你的爱好是什么？', hint: '취미가 뭐예요?' },
+  { zh: '你吃过中国菜吗？', hint: '중국 음식을 먹어본 적 있어요?' },
+  { zh: '你为什么学习中文？', hint: '왜 중국어를 배워요?' },
+];
+
+let selectedQs = [];
+let currentIdx = 0;
+let answers = [];
+let recognition = null;
+let micStream = null;
+let recognitionReady = false;
+let isListeningActive = false;
+let testComplete = false;
+let timerInterval = null;
+let timeLeft = ANSWER_TIME;
+let currentAnswer = '';
+
+// API Key
+function loadStoredKey() { try { return localStorage.getItem(STORAGE_KEY) || ''; } catch(e) { return ''; } }
+function saveStoredKey(k) { try { localStorage.setItem(STORAGE_KEY, k); } catch(e) {} }
+
+window.onload = () => {
+  const k = loadStoredKey();
+  if (k) {
+    document.getElementById('api-key-input').value = k;
+    document.getElementById('api-saved-msg').style.display = 'block';
+  }
+};
+
+function saveApiKey() {
+  const k = document.getElementById('api-key-input').value.trim();
+  if (!k) return;
+  saveStoredKey(k);
+  document.getElementById('api-saved-msg').style.display = 'block';
+}
+
+// 마이크 권한 — 1회만
+async function acquireMic() {
+  if (recognitionReady) return true;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { alert('이 브라우저는 음성인식을 지원하지 않습니다.\nChrome을 사용해주세요.'); return false; }
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch(e) {
+    alert(e.name === 'NotAllowedError'
+      ? '마이크 권한이 거부되었습니다.\n브라우저 주소창 🔒 → 마이크 → 허용'
+      : '마이크를 찾을 수 없습니다.\n' + e.message);
+    return false;
+  }
+  try {
+    recognition = new SR();
+    recognition.lang = 'zh-CN';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (event) => {
+      if (!isListeningActive) return;
+      let interim = '', final = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) final += t;
+        else interim += t;
+      }
+      if (final) currentAnswer += final;
+      document.getElementById('stt-text').textContent = (currentAnswer + interim) || '듣고 있습니다…';
+    };
+    recognition.onerror = (e) => { if (e.error !== 'no-speech') console.warn('STT:', e.error); };
+    recognition.onend = () => { if (!testComplete) try { recognition.start(); } catch(e) {} };
+    recognition.start();
+    recognitionReady = true;
+  } catch(e) {
+    alert('음성인식 초기화 실패: ' + e.message);
+    return false;
+  }
+  return true;
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+async function startTest() {
+  const apiKey = document.getElementById('api-key-input').value.trim();
+  if (!apiKey) { alert('Gemini API Key를 입력해주세요.'); return; }
+  saveStoredKey(apiKey);
+
+  const ok = await acquireMic();
+  if (!ok) return;
+
+  // 랜덤 3개 선택
+  const shuffled = [...QUESTIONS].sort(() => Math.random() - .5);
+  selectedQs = shuffled.slice(0, 3);
+  currentIdx = 0;
+  answers = [];
+  testComplete = false;
+
+  showScreen('screen-test');
+  runQuestion();
+}
+
+function runQuestion() {
+  currentAnswer = '';
+  document.getElementById('stt-text').textContent = '인식된 답변이 여기에 표시됩니다';
+
+  const q = selectedQs[currentIdx];
+  const total = selectedQs.length;
+
+  document.getElementById('q-counter').textContent = `${currentIdx + 1} / ${total}`;
+  document.getElementById('progress-bar').style.width = `${((currentIdx + 1) / total) * 100}%`;
+  document.getElementById('chinese-q').textContent = q.zh;
+  document.getElementById('q-status').textContent = '질문을 읽어드립니다…';
+  document.getElementById('mic-indicator').className = 'mic-indicator';
+  document.getElementById('timer').textContent = ANSWER_TIME;
+  document.getElementById('timer').className = 'timer normal';
+
+  speakText(q.zh, 'zh-CN', 0.9).then(() => {
+    document.getElementById('q-status').textContent = '지금 답변하세요 🎙️';
+    document.getElementById('mic-indicator').className = 'mic-indicator recording';
+    isListeningActive = true;
+    startCountdown();
+  });
+}
+
+function startCountdown() {
+  clearInterval(timerInterval);
+  timeLeft = ANSWER_TIME;
+  document.getElementById('btn-next').style.display = 'block';
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    const el = document.getElementById('timer');
+    el.textContent = timeLeft;
+    if (timeLeft <= 5 && timeLeft > 3) el.className = 'timer warn';
+    else if (timeLeft <= 3) el.className = 'timer danger';
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      finishAnswer();
+    }
+  }, 1000);
+}
+
+function finishAnswer() {
+  clearInterval(timerInterval);
+  isListeningActive = false;
+  document.getElementById('mic-indicator').className = 'mic-indicator';
+  document.getElementById('btn-next').style.display = 'none';
+  answers.push({ q: selectedQs[currentIdx], a: currentAnswer.trim() });
+
+  currentIdx++;
+  if (currentIdx < selectedQs.length) {
+    document.getElementById('q-status').textContent = '다음 질문 준비 중…';
+    setTimeout(runQuestion, 1200);
+  } else {
+    endTestAndScore();
+  }
+}
+
+function endTestAndScore() {
+  testComplete = true;
+  isListeningActive = false;
+  if (recognition) try { recognition.abort(); } catch(e) {}
+  showScreen('screen-scoring');
+  const apiKey = document.getElementById('api-key-input').value.trim();
+  scoreWithGemini(apiKey);
+}
+
+// TTS
+function speakText(text, lang, rate) {
+  return new Promise((resolve) => {
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = lang; u.rate = rate; u.pitch = 1.0; u.volume = 1.0;
+      const voices = speechSynthesis.getVoices();
+      const preferred =
+        voices.find(v => /zh[-_]CN/i.test(v.lang) && /google/i.test(v.name)) ||
+        voices.find(v => /zh[-_]CN/i.test(v.lang));
+      if (preferred) u.voice = preferred;
+      u.onend = () => resolve();
+      u.onerror = () => resolve();
+      speechSynthesis.speak(u);
+      const fallbackMs = Math.max(3000, text.length * 600) + 2000;
+      setTimeout(resolve, fallbackMs);
+    } catch(e) { resolve(); }
+  });
+}
+
+// Gemini 채점
+async function callGemini(prompt, apiKey) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 2500, topP: 0.9 }
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`HTTP ${res.status} — ${err?.error?.message || '알 수 없는 오류'}`);
+  }
+  const data = await res.json();
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error('Gemini 응답이 비어있습니다.');
+  return text.trim();
+}
+
+function buildPrompt() {
+  const rows = answers.map((item, i) =>
+    `Q${i+1}: ${item.q.zh}  A${i+1}: ${item.a || '(무응답)'}`
+  ).join('\n');
+
+  return `너는 평택마이스터고등학교의 중국어 말하기 수행평가 채점관이다. 엄격하지만 공정하게 채점하라.
+
+[중요 — 성조 및 STT 주의]
+- 성조가 틀려도 의미가 전달되면 정상 인정한다.
+- 한국어 이름, 음식 이름(김치, 떡볶이 등), 학교·장소 이름은 중국어 STT 오인식이 있어도 정상 인정.
+- 위 단어 포함 + 나머지가 중국어로 의미가 통하는 경우 인정.
+- FAIL: 이름·음식 외 단어들이 문맥 없이 나열된 경우.
+
+[학생 시험 데이터]
+${rows}
+
+[답변 전처리]
+STT는 마침표 없이 출력하므로 의미 단위로 정리. 정리된 문장을 Q1s, Q2s, Q3s로 출력에 포함.
+
+[만점(PASS) 조건 — 초급 수준 기준으로 관대하게 적용]
+① 중국어 단어 1개 이상 포함 (병음·한자 모두 인정)
+② 질문 주제와 조금이라도 관련 있는 답변
+③ 성조 오류·문법 오류는 감점 없음, 의미 전달이면 PASS
+
+[등급]
+PASS = 중국어로 주제 관련 답변 (단어 1개도 OK)
+WARN = 중국어 답변이나 주제와 전혀 무관하거나 너무 단편적
+FAIL = 완전 침묵·한국어만·완전 동문서답
+
+[채점 기준 — 10점 만점, 2점 간격]
+- 10점: PASS×3
+- 8점: PASS×2 + WARN×1
+- 6점: PASS×1 + WARN×2 또는 WARN×3
+- 4점: FAIL×1 + 나머지 WARN 이상
+- 2점: FAIL×2 이상
+
+[출력 규칙 — 반드시 아래 형식만. 다른 말 없이.]
+점수: [숫자만]점
+Q1s: [정리된 A1]
+Q1: [PASS|WARN|FAIL] | [이유 15자 이내] | [평가 및 개선 힌트 한국어로]
+Q2s: [정리된 A2]
+Q2: [PASS|WARN|FAIL] | [이유 15자 이내] | [평가 및 개선 힌트 한국어로]
+Q3s: [정리된 A3]
+Q3: [PASS|WARN|FAIL] | [이유 15자 이내] | [평가 및 개선 힌트 한국어로]
+코멘트: [한 줄. 만점이면 칭찬, 감점이면 응원. 한국어로.]`;
+}
+
+function parseResult(text) {
+  const sm = text.match(/점수\s*[:：]?\s*\[?\s*(\d{1,2})\s*\]?\s*점?/);
+  const score = sm ? sm[1] : '--';
+
+  const qSentences = [1,2,3].map(i => {
+    const m = text.match(new RegExp(`Q${i}s\\s*[:：]\\s*([^\\n]+)`, 'i'));
+    return m ? m[1].trim() : '';
+  });
+
+  const qRows = [1,2,3].map((i, idx) => {
+    const m = text.match(new RegExp(`Q${i}\\s*[:：]\\s*(PASS|WARN|FAIL)\\s*\\|([^|\\n]+)\\|([^\\n]+)`, 'i'));
+    return m
+      ? { status: m[1].trim().toUpperCase(), reason: m[2].trim(), note: m[3].trim(), sentence: qSentences[idx] }
+      : { status: 'WARN', reason: '—', note: '평가 데이터 없음', sentence: '' };
+  });
+
+  const ci = text.search(/코멘트\s*[:：]/);
+  const comment = ci >= 0
+    ? text.slice(ci).replace(/^코멘트\s*[:：]\s*/, '').trim().replace(/^\[|\]$/g, '').trim()
+    : '수고했어요!';
+
+  return { score, qRows, comment };
+}
+
+function renderResult(parsed) {
+  document.getElementById('result-score').textContent = parsed.score;
+
+  const counts = { PASS: 0, WARN: 0, FAIL: 0 };
+  parsed.qRows.forEach(r => counts[r.status] = (counts[r.status] || 0) + 1);
+  const parts = [];
+  if (counts.PASS) parts.push(`<span class="badge badge-pass">✅ PASS ${counts.PASS}개</span>`);
+  if (counts.WARN) parts.push(`<span class="badge badge-warn">⚠️ WARN ${counts.WARN}개</span>`);
+  if (counts.FAIL) parts.push(`<span class="badge badge-fail">❌ FAIL ${counts.FAIL}개</span>`);
+  document.getElementById('score-badges').innerHTML = parts.join('');
+
+  const container = document.getElementById('q-results');
+  container.innerHTML = '';
+  const cfg = {
+    PASS: { cls: 'pass', icon: '✅', tag: '만점' },
+    WARN: { cls: 'warn', icon: '⚠️', tag: '감점' },
+    FAIL: { cls: 'fail', icon: '❌', tag: '감점' }
+  };
+
+  parsed.qRows.forEach((row, i) => {
+    const c = cfg[row.status] || cfg.WARN;
+    const q = answers[i];
+    const div = document.createElement('div');
+    div.className = `q-row ${c.cls}`;
+    div.innerHTML = `
+      <div class="q-icon">${c.icon}</div>
+      <div class="q-body">
+        <div class="q-label">${i+1}번 질문 · ${c.tag}</div>
+        <div class="q-chinese">${q ? q.q.zh : ''}</div>
+        ${row.sentence ? `<div class="q-sentence">💬 ${row.sentence}</div>` : ''}
+        <div class="q-reason">📋 ${row.reason}</div>
+        <div class="q-note">${row.note}</div>
+      </div>`;
+    container.appendChild(div);
+  });
+
+  document.getElementById('result-comment').textContent = parsed.comment;
+}
+
+async function scoreWithGemini(apiKey) {
+  try {
+    const prompt = buildPrompt();
+    const text = await callGemini(prompt, apiKey);
+    const parsed = parseResult(text);
+    showScreen('screen-result');
+    renderResult(parsed);
+  } catch(e) {
+    showScreen('screen-result');
+    document.getElementById('result-score').textContent = '--';
+    document.getElementById('error-msg').style.display = 'block';
+    document.getElementById('error-msg').textContent = '채점 오류: ' + e.message;
+    document.getElementById('result-comment').textContent = '채점 중 오류가 발생했습니다. API Key를 확인해주세요.';
+  }
+}
+
+function restartTest() {
+  testComplete = false;
+  isListeningActive = false;
+  recognitionReady = false;
+  if (recognition) try { recognition.abort(); } catch(e) {}
+  recognition = null;
+  micStream = null;
+  document.getElementById('error-msg').style.display = 'none';
+  showScreen('screen-start');
+}
+
+function goHome() {
+  restartTest();
+}
+</script>
+</body>
+</html>
